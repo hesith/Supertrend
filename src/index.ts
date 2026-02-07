@@ -8,6 +8,7 @@ import { colorTrend, getPostionType } from './utilities/general';
 import express from "express";
 // @ts-ignore
 import { Request, Response } from "express";
+const cron = require("node-cron");
 
 /* =========================
    Minimal HTTP Health Server
@@ -17,6 +18,17 @@ const PORT = process.env.PORT || 3000;
 
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).send("Trading bot is running");
+});
+
+// Ping yourself every 13 minutes to prevent idle spin-down
+cron.schedule("*/13 * * * *", async () => {
+  try {
+    const url = "https://supertrend-u6g0.onrender.com"; // Replace with your Render URL
+    await fetch(url);
+    console.log(`[${new Date().toISOString()}] Pinged self to stay awake!`);
+  } catch (err) {
+    console.error("Ping failed:", err);
+  }
 });
 
 app.listen(PORT, "0.0.0.0", () => {

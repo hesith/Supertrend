@@ -4,6 +4,28 @@
 import 'dotenv/config';
 import { BinanceConfig } from "./classes/binance-config";
 import { colorTrend, getPostionType } from './utilities/general';
+// @ts-ignore
+import express from "express";
+// @ts-ignore
+import { Request, Response } from "express";
+
+/* =========================
+   Minimal HTTP Health Server
+   ========================= */
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (_req: Request, res: Response) => {
+  res.status(200).send("Trading bot is running");
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Health server listening on port ${PORT}`);
+});
+
+/* =========================
+   Trading Bot Logic
+   ========================= */
 
 const sleep = (ms: number) =>
     new Promise(resolve => setTimeout(resolve, ms));

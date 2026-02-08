@@ -58,7 +58,7 @@ export class BinanceConfig {
             }));
             return candles;
         } catch (err) {
-            console.error('Error fetching candles');
+            console.error('Error fetching candles', err);
             return [];
         }
     };

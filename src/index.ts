@@ -152,10 +152,11 @@ function startBot() {
 
             } catch (err) {
                 console.error('Error:', err);
+            } finally {
+                // ⏱ wait 2 seconds
+                await sleep(2000);
             }
 
-            // ⏱ wait 2 seconds
-            await sleep(2000);
         }
 
 

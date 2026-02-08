@@ -3,9 +3,16 @@ import 'dotenv/config';
 import Binance from 'node-binance-api';
 import { ATR } from 'technicalindicators';
 import { SupertrendPoint } from '../interfaces/binance/indicators/supertrend';
+import { HttpsProxyAgent } from "https-proxy-agent";
+
+// Proxy string
+const proxyString = "31.59.20.176:6754:qgpkjdek:5nwdt9xe5zup";
+const [host, port, username, password] = proxyString.split(":");
+const proxyUrl = `http://${username}:${password}@${host}:${port}`;
 
 export class BinanceConfig {
     private binance: any;
+    private proxyAgent: any;
 
     constructor() {
         this.binance = new Binance().options({
@@ -14,6 +21,9 @@ export class BinanceConfig {
             useServerTime: true,
             test: true // 🔴 set false for real trading
         });
+
+        this.proxyAgent = new HttpsProxyAgent(proxyUrl);
+
     }
 
     // ---------- Get Current Price ----------
@@ -50,6 +60,7 @@ export class BinanceConfig {
         try {
             const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
             const resp = await axios.get(url, {
+                httpsAgent: this.proxyAgent,
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
                     'Accept': 'application/json',

@@ -49,7 +49,12 @@ export class BinanceConfig {
     getCandlesByPublicEndpoint = async (symbol: string, interval: string = '5m', limit: number = 100) => {
         try {
             const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-            const resp = await axios.get(url);
+            const resp = await axios.get(url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+                    'Accept': 'application/json',
+                },
+            });
             const candles = resp.data.map((t: any) => ({
                 open: parseFloat(t[1]),
                 high: parseFloat(t[2]),

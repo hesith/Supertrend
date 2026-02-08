@@ -30,6 +30,7 @@ app.get("/", (_req: Request, res: Response) => {
 
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Health server listening on port ${PORT}`);
+    startBot(); // start bot ONLY once
 });
 
 /* =========================
@@ -99,6 +100,7 @@ function startBot() {
         while (true) {
             try {
                 const candles = await binance.getCandlesByPublicEndpoint('ETHUSDT', '5m', 150);
+                console.log(candles)
                 const st = binance.calculateSupertrend(candles);
 
                 // st.forEach((point, idx) => {

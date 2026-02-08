@@ -38,7 +38,7 @@ app.listen(PORT, "0.0.0.0", () => {
 
 cron.schedule("*/13 * * * *", async () => {
     try {
-        await fetch("https://supertrend-u6g0.onrender.com");
+        await fetch("https://supertrend-hpuz.onrender.com");
         console.log("🔔 Self-ping successful");
     } catch (err) {
         console.error("Ping failed:", err);

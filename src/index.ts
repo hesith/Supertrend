@@ -20,6 +20,7 @@ const PORT = process.env.PORT || 3000;
 let botStarted = false; // 🔐 IMPORTANT GUARD
 
 app.get("/", (_req: Request, res: Response) => {
+    console.log("🔔 Ping received. Has bot started ?", botStarted);
     if (!botStarted) {
         botStarted = true;
         console.log("🚀 Starting trading bot...");

@@ -6,7 +6,7 @@ import { SupertrendPoint } from '../interfaces/binance/indicators/supertrend';
 import { HttpsProxyAgent } from "https-proxy-agent";
 
 // Proxy string
-const proxyString = "31.59.20.176:6754:qgpkjdek:5nwdt9xe5zup";
+const proxyString = "31.59.20.176:6754:ggcswnsb:sx4ayj7p3nko";
 const [host, port, username, password] = proxyString.split(":");
 const proxyUrl = `http://${username}:${password}@${host}:${port}`;
 
@@ -79,6 +79,28 @@ export class BinanceConfig {
         }
     };
 
+    getFuturesCandlesByPublicEndpoint = async (symbol: string, interval: string = '5m', limit: number = 100) => {
+        try {
+            const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+            const resp = await axios.get(url, {
+                httpsAgent: this.proxyAgent,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+                    'Accept': 'application/json',
+                },
+            });
+            const candles = resp.data.map((t: any) => ({
+                open: parseFloat(t[1]),
+                high: parseFloat(t[2]),
+                low: parseFloat(t[3]),
+                close: parseFloat(t[4]),
+            }));
+            return candles;
+        } catch (err) {
+            console.error('Error fetching candles', err);
+            return [];
+        }
+    };
 
     calculateSupertrend = (
         candles: { high: number; low: number; close: number }[],

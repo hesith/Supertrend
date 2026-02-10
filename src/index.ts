@@ -65,7 +65,9 @@ function startBot() {
         const capital = 100
         const leverage = 2;
         const position = capital * leverage;
-        const orderFee = capital * (0.04 / 100);
+        const orderFee = position * (0.04 / 100);
+        const takeProfitPerc = 40 / 100;
+
 
         let lastTrend: 'up' | 'down' | undefined = undefined;
         let hasOpenedPosition = false;
@@ -73,6 +75,7 @@ function startBot() {
         // logging
         let orderQty: number;
         let orderTrendDir: 'up' | 'down' | undefined | null;
+        let takeProfit: number;
 
         const logOrderResult = (openOrClose: PositionType, orderTrendDirection: 'up' | 'down' | undefined, assetPrice: number) => {
             if (orderTrendDirection == undefined) return;
@@ -84,6 +87,8 @@ function startBot() {
 
                 orderTrendDir = orderTrendDirection;
                 console.log('Opening position', getPostionType(orderTrendDirection), '. Current Price', assetPrice);
+                hasOpenedPosition = true;
+                setTakeProfit();
             } else {
                 const closingOrderValue = orderQty * assetPrice;
                 if (orderTrendDir == 'up') {
@@ -92,14 +97,59 @@ function startBot() {
                     console.log('Closing position. Current Price', assetPrice, 'Profit', position - closingOrderValue - (orderFee * 2));
                 }
 
+                hasOpenedPosition = false;
                 orderQty = 0;
                 orderTrendDir = undefined;
+                takeProfit = 0;
             }
+        }
+
+        const setTakeProfit = async () => {
+            try {
+                const candles = await binance.getFuturesCandlesByPublicEndpoint('ETHUSDT', '5m', 2);
+                const previousCandle = candles?.[0];
+
+                const previousCandleOpen = previousCandle?.open;
+                const previousCandleClose = previousCandle?.close;
+                const previousBodyLength = Math.abs(previousCandleClose - previousCandleOpen);
+                const takeProfitLength = previousBodyLength * takeProfitPerc;
+
+                if (orderTrendDir == 'up') {
+                    takeProfit = previousCandleClose + takeProfitLength;
+                }
+                else {
+                    takeProfit = previousCandleClose - takeProfitLength;
+                }
+
+                console.log('Take profit set to:', takeProfit);
+            } catch (ex) {
+                console.log('Take profit calculation error:', ex);
+            }
+        }
+
+        const closeIfTakeProfitHit = async () => {
+            if (!hasOpenedPosition) return;
+
+            const currentPrice = await binance.getPrice('ETHUSDT');
+
+            if (orderTrendDir == 'up') {
+                if (currentPrice >= takeProfit) {
+                    console.log('Take profit hit.');
+                    logOrderResult(PositionType.Close, 'up', currentPrice)
+                }
+            }
+            else {
+                if (currentPrice <= takeProfit) {
+                    console.log('Take profit hit.');
+                    logOrderResult(PositionType.Close, 'up', currentPrice)
+                }
+            }
+
         }
 
         while (true) {
             try {
-                const candles = await binance.getCandlesByPublicEndpoint('ETHUSDT', '5m', 150);
+                const candles = await binance.getFuturesCandlesByPublicEndpoint('ETHUSDT', '5m', 150);
                 const st = binance.calculateSupertrend(candles);
 
                 // st.forEach((point, idx) => {
@@ -138,16 +188,16 @@ function startBot() {
 
                         logOrderResult(PositionType.Open, secondPreviousCandleTrend, await binance.getPrice('ETHUSDT'));
 
-                        hasOpenedPosition = true;
                     }
 
+                    closeIfTakeProfitHit(); // close if take profit hit
+
                     if (hasOpenedPosition && secondPreviousCandleTrend == lastTrend) {
-                        // close the position
+                        // close the position normally (after 5 min candle close)
                         console.log("Closing position.")
 
                         logOrderResult(PositionType.Close, 'up', await binance.getPrice('ETHUSDT'))
 
-                        hasOpenedPosition = false;
                     }
                 }
 

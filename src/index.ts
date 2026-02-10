@@ -77,7 +77,7 @@ function startBot() {
         let orderTrendDir: 'up' | 'down' | undefined | null;
         let takeProfit: number;
 
-        const logOrderResult = (openOrClose: PositionType, orderTrendDirection: 'up' | 'down' | undefined, assetPrice: number) => {
+        const logOrderResult = async (openOrClose: PositionType, orderTrendDirection: 'up' | 'down' | undefined, assetPrice: number) => {
             if (orderTrendDirection == undefined) return;
 
             console.log(new Date().toLocaleTimeString())
@@ -88,7 +88,7 @@ function startBot() {
                 orderTrendDir = orderTrendDirection;
                 console.log('Opening position', getPostionType(orderTrendDirection), '. Current Price', assetPrice);
                 hasOpenedPosition = true;
-                setTakeProfit();
+                await setTakeProfit();
             } else {
                 const closingOrderValue = orderQty * assetPrice;
                 if (orderTrendDir == 'up') {
@@ -135,13 +135,13 @@ function startBot() {
             if (orderTrendDir == 'up') {
                 if (currentPrice >= takeProfit) {
                     console.log('Take profit hit.');
-                    logOrderResult(PositionType.Close, 'up', currentPrice)
+                    await logOrderResult(PositionType.Close, 'up', currentPrice)
                 }
             }
             else {
                 if (currentPrice <= takeProfit) {
                     console.log('Take profit hit.');
-                    logOrderResult(PositionType.Close, 'up', currentPrice)
+                    await logOrderResult(PositionType.Close, 'up', currentPrice)
                 }
             }
 
@@ -186,7 +186,7 @@ function startBot() {
                         // Open a position here
                         console.log("opening a position in the direction", colorTrend(secondPreviousCandleTrend))
 
-                        logOrderResult(PositionType.Open, secondPreviousCandleTrend, await binance.getPrice('ETHUSDT'));
+                        await logOrderResult(PositionType.Open, secondPreviousCandleTrend, await binance.getPrice('ETHUSDT'));
 
                     }
 
@@ -196,7 +196,7 @@ function startBot() {
                         // close the position normally (after 5 min candle close)
                         console.log("Closing position.")
 
-                        logOrderResult(PositionType.Close, 'up', await binance.getPrice('ETHUSDT'))
+                        await logOrderResult(PositionType.Close, 'up', await binance.getPrice('ETHUSDT'))
 
                     }
                 }

@@ -190,7 +190,7 @@ function startBot() {
 
                     }
 
-                    closeIfTakeProfitHit(); // close if take profit hit
+                    await closeIfTakeProfitHit(); // close if take profit hit
 
                     if (hasOpenedPosition && secondPreviousCandleTrend == lastTrend) {
                         // close the position normally (after 5 min candle close)

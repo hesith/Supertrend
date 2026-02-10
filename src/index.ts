@@ -71,6 +71,7 @@ function startBot() {
 
         let lastTrend: 'up' | 'down' | undefined = undefined;
         let hasOpenedPosition = false;
+        let hasTradedInCurrentTrend = false;
 
         // logging
         let orderQty: number;
@@ -101,6 +102,7 @@ function startBot() {
                 orderQty = 0;
                 orderTrendDir = undefined;
                 takeProfit = 0;
+                hasTradedInCurrentTrend = true;
             }
         }
 
@@ -175,12 +177,13 @@ function startBot() {
                     if (currentCandleTrend != lastTrend) {
                         // pre identify trend change
                         console.log(`Trend reversing ${colorTrend(lastTrend) + ' ==>> ' + colorTrend(currentCandleTrend)}`)
+                        if (hasTradedInCurrentTrend) hasTradedInCurrentTrend = false;
                     }
 
 
-                    if (previousCandleTrend != secondPreviousCandleTrend && !hasOpenedPosition) {
+                    if (previousCandleTrend != secondPreviousCandleTrend && !hasOpenedPosition && !hasTradedInCurrentTrend) {
                         // confirm trend change
-                        console.log("Trend reveresed to", colorTrend(previousCandleTrend))
+                        console.log("Trend reveresed to", colorTrend(previousCandleTrend));
                         lastTrend = previousCandleTrend;
 
                         // Open a position here

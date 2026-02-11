@@ -76,7 +76,7 @@ function startBot() {
         // logging
         let orderQty: number;
         let orderTrendDir: 'up' | 'down' | undefined | null;
-        let takeProfit: number;
+        let takeProfit: number = 0;
 
         const logOrderResult = async (openOrClose: PositionType, orderTrendDirection: 'up' | 'down' | undefined, assetPrice: number) => {
             if (orderTrendDirection == undefined) return;
@@ -108,6 +108,9 @@ function startBot() {
 
         const setTakeProfit = async () => {
             try {
+                // ⏱ wait 5 seconds to avoid update latencies
+                await sleep(5000);
+
                 const candles = await binance.getFuturesCandlesByPublicEndpoint('ETHUSDT', '5m', 2);
                 const previousCandle = candles?.[0];
 
@@ -130,7 +133,7 @@ function startBot() {
         }
 
         const closeIfTakeProfitHit = async () => {
-            if (!hasOpenedPosition) return;
+            if (!hasOpenedPosition || takeProfit === 0) return;
 
             const currentPrice = await binance.getPrice('ETHUSDT');
 

@@ -66,7 +66,7 @@ function startBot() {
         const leverage = 2;
         const position = capital * leverage;
         const orderFee = position * (0.04 / 100);
-        const takeProfitPerc = 40 / 100;
+        const takeProfitPerc = 30 / 100;
 
 
         let lastTrend: 'up' | 'down' | undefined = undefined;

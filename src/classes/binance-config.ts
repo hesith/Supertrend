@@ -4,15 +4,19 @@ import Binance from 'node-binance-api';
 import { ATR } from 'technicalindicators';
 import { SupertrendPoint } from '../interfaces/binance/indicators/supertrend';
 import { HttpsProxyAgent } from "https-proxy-agent";
+import WebSocket from "ws";
 
 // Proxy string
-const proxyString = "31.59.20.176:6754:ggcswnsb:sx4ayj7p3nko";
+const proxyString = "31.59.20.176:6754:ezevypaj:e37m9mjqd63h";
 const [host, port, username, password] = proxyString.split(":");
 const proxyUrl = `http://${username}:${password}@${host}:${port}`;
 
 export class BinanceConfig {
     private binance: any;
     private proxyAgent: any;
+
+    private priceSocket: WebSocket | null = null;
+    private latestPrice: number | null = null;
 
     constructor() {
         this.binance = new Binance().options({
@@ -25,6 +29,48 @@ export class BinanceConfig {
         this.proxyAgent = new HttpsProxyAgent(proxyUrl);
 
     }
+
+    //#region Websocket
+    startFuturesPriceStream(symbol: string) {
+        const stream = symbol.toLowerCase();
+        const wsUrl = `wss://fstream.binance.com/ws/${stream}@markPrice`;
+
+        const connect = () => {
+            console.log(`🔌 Futures WS connecting for ${symbol}.P`);
+
+            this.priceSocket = new WebSocket(wsUrl);
+
+            this.priceSocket.on("message", (data) => {
+                const payload = JSON.parse(data.toString());
+
+                // mark price
+                this.latestPrice = parseFloat(payload.p);
+            });
+
+            this.priceSocket.on("open", () => {
+                console.log(`✅ Futures WS connected: ${symbol}.P`);
+            });
+
+            this.priceSocket.on("close", () => {
+                console.warn("⚠️ Futures WS closed. Reconnecting...");
+                setTimeout(connect, 3000);
+            });
+
+            this.priceSocket.on("error", () => {
+                this.priceSocket?.close();
+            });
+        };
+
+        connect();
+    }
+
+    getLivePrice(): number {
+        if (this.latestPrice === null) {
+            throw new Error("Price not ready yet");
+        }
+        return this.latestPrice;
+    }
+    //#endregion
 
     // ---------- Get Current Price ----------
     getPrice = async (symbol: string) => {

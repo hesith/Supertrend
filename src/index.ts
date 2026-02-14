@@ -61,6 +61,7 @@ enum PositionType {
 function startBot() {
     (async () => {
         const binance = new BinanceConfig()
+        binance.startFuturesPriceStream("ETHUSDT");
 
         const capital = 100
         const leverage = 2;
@@ -135,7 +136,7 @@ function startBot() {
         const closeIfTakeProfitHit = async () => {
             if (!hasOpenedPosition || takeProfit === 0) return;
 
-            const currentPrice = await binance.getPrice('ETHUSDT');
+            const currentPrice = binance.getLivePrice();
 
             if (orderTrendDir == 'up') {
                 if (currentPrice >= takeProfit) {
@@ -192,7 +193,7 @@ function startBot() {
                         // Open a position here
                         console.log("opening a position in the direction", colorTrend(secondPreviousCandleTrend))
 
-                        await logOrderResult(PositionType.Open, secondPreviousCandleTrend, await binance.getPrice('ETHUSDT'));
+                        await logOrderResult(PositionType.Open, secondPreviousCandleTrend, binance.getLivePrice());
 
                     }
 
@@ -202,7 +203,7 @@ function startBot() {
                         // close the position normally (after 5 min candle close)
                         console.log("Closing position.")
 
-                        await logOrderResult(PositionType.Close, 'up', await binance.getPrice('ETHUSDT'))
+                        await logOrderResult(PositionType.Close, 'up', binance.getLivePrice())
 
                     }
                 }

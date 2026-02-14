@@ -102,7 +102,7 @@ export class BinanceConfig {
         });
     };
 
-    getCandlesByPublicEndpoint = async (symbol: string, interval: string = '5m', limit: number = 100) => {
+    getCandlesByPublicEndpoint = async (symbol: string, interval: string = '15m', limit: number = 100) => {
         try {
             const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
             const resp = await axios.get(url, {
@@ -125,7 +125,7 @@ export class BinanceConfig {
         }
     };
 
-    getFuturesCandlesByPublicEndpoint = async (symbol: string, interval: string = '5m', limit: number = 100) => {
+    getFuturesCandlesByPublicEndpoint = async (symbol: string, interval: string = '15m', limit: number = 100) => {
         try {
             const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
             const resp = await axios.get(url, {

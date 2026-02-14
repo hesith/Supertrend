@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 3000;
 let botStarted = false; // 🔐 IMPORTANT GUARD
 
 app.get("/", (_req: Request, res: Response) => {
-    console.log("🔔 Ping received. Has bot started ?", botStarted);
+    console.log("🔔 Ping received");
     if (!botStarted) {
         botStarted = true;
         console.log("🚀 Starting trading bot...");
@@ -40,7 +40,7 @@ app.listen(PORT, "0.0.0.0", () => {
 cron.schedule("*/13 * * * *", async () => {
     try {
         await fetch("https://supertrend-31go.onrender.com");
-        console.log("🔔 Self-ping successful");
+        console.log("🔔 Self-ping sent");
     } catch (err) {
         console.error("Ping failed:", err);
     }
@@ -112,7 +112,7 @@ function startBot() {
                 // ⏱ wait 5 seconds to avoid update latencies
                 await sleep(5000);
 
-                const candles = await binance.getFuturesCandlesByPublicEndpoint('ETHUSDT', '5m', 2);
+                const candles = await binance.getFuturesCandlesByPublicEndpoint('ETHUSDT', '15m', 2);
                 const previousCandle = candles?.[0];
 
                 const previousCandleOpen = previousCandle?.open;
@@ -155,7 +155,7 @@ function startBot() {
 
         while (true) {
             try {
-                const candles = await binance.getFuturesCandlesByPublicEndpoint('ETHUSDT', '5m', 150);
+                const candles = await binance.getFuturesCandlesByPublicEndpoint('ETHUSDT', '15m', 150);
                 const st = binance.calculateSupertrend(candles);
 
                 // st.forEach((point, idx) => {
@@ -168,8 +168,6 @@ function startBot() {
 
                 const previousCandleTrend = st[st.length - 2]?.trend;
                 const secondPreviousCandleTrend = st[st.length - 3]?.trend;
-
-                const thirdPreviousCandleTrend = st[st.length - 4]?.trend;
 
                 if (!lastTrend) {
                     // if trend not set, set here (possibly at the beginning)

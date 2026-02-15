@@ -64,7 +64,7 @@ function startBot() {
         binance.startFuturesPriceStream("ETHUSDT");
 
         const capital = 100
-        const leverage = 2;
+        const leverage = 10;
         const position = capital * leverage;
         const orderFee = position * (0.04 / 100);
         const takeProfitPerc = 30 / 100;

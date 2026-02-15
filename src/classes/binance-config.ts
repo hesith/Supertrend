@@ -5,11 +5,14 @@ import { ATR } from 'technicalindicators';
 import { SupertrendPoint } from '../interfaces/binance/indicators/supertrend';
 import { HttpsProxyAgent } from "https-proxy-agent";
 import WebSocket from "ws";
+import crypto from "crypto";
 
 // Proxy string
 const proxyString = process.env.PROXY_STRING || '';
 const [host, port, username, password] = proxyString.split(":");
 const proxyUrl = `http://${username}:${password}@${host}:${port}`;
+
+const BASE_URL = "https://fapi.binance.com";
 
 export class BinanceConfig {
     private binance: any;
@@ -72,18 +75,6 @@ export class BinanceConfig {
     }
     //#endregion
 
-    // ---------- Get Current Price ----------
-    getPrice = async (symbol: string) => {
-        try {
-            const prices = await this.binance?.prices(symbol);
-            console.log(`\n${symbol} price: ${prices[symbol]}`);
-            return prices[symbol];
-        } catch (error: any) {
-            console.error('Price error:', error?.body || error);
-            return null;
-        }
-    }
-
     getCandles = async (symbol: string, interval: string = '1h', limit: number = 100) => {
         return new Promise<{ open: number; high: number; low: number; close: number }[]>((resolve, reject) => {
             this.binance.candlesticks(symbol, interval, (error: any, ticks: any[]) => {
@@ -102,32 +93,9 @@ export class BinanceConfig {
         });
     };
 
-    getCandlesByPublicEndpoint = async (symbol: string, interval: string = '15m', limit: number = 100) => {
-        try {
-            const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-            const resp = await axios.get(url, {
-                httpsAgent: this.proxyAgent,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
-                    'Accept': 'application/json',
-                },
-            });
-            const candles = resp.data.map((t: any) => ({
-                open: parseFloat(t[1]),
-                high: parseFloat(t[2]),
-                low: parseFloat(t[3]),
-                close: parseFloat(t[4]),
-            }));
-            return candles;
-        } catch (err) {
-            console.error('Error fetching candles', err);
-            return [];
-        }
-    };
-
     getFuturesCandlesByPublicEndpoint = async (symbol: string, interval: string = '15m', limit: number = 100) => {
         try {
-            const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+            const url = BASE_URL + `/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
             const resp = await axios.get(url, {
                 httpsAgent: this.proxyAgent,
                 headers: {
@@ -217,7 +185,29 @@ export class BinanceConfig {
         return result;
     };
 
+    /** sign query string */
+    sign = (queryString: string): string =>
+        crypto
+            .createHmac("sha256", process.env.API_SECRET || '')
+            .update(queryString)
+            .digest("hex");
 
+    getServerTime = async () =>
+        (await axios.get(`${BASE_URL}/fapi/v1/time`)).data.serverTime;
+
+    getFuturesUSDTBalance = async () => {
+        const serverTime = await this.getServerTime();
+
+        const queryString = `timestamp=${serverTime}`;
+        const signature = this.sign(queryString);
+
+        const { data } = await axios.get(
+            `${BASE_URL}/fapi/v2/balance?${queryString}&signature=${signature}`,
+            { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
+        );
+
+        return data.find((a: any) => a.asset === "USDT");
+    };
 }
 
 

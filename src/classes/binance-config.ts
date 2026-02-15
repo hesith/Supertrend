@@ -7,7 +7,7 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 import WebSocket from "ws";
 
 // Proxy string
-const proxyString = "212.135.12.6:7688:qgpkjdek:5nwdt9xe5zup";
+const proxyString = process.env.PROXY_STRING || '';
 const [host, port, username, password] = proxyString.split(":");
 const proxyUrl = `http://${username}:${password}@${host}:${port}`;
 

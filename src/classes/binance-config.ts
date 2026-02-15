@@ -208,6 +208,125 @@ export class BinanceConfig {
 
         return data.find((a: any) => a.asset === "USDT");
     };
+
+    openPosition = async ({
+        side,
+        usdtAmount,
+        leverage,
+    }: {
+        side: "BUY" | "SELL";
+        usdtAmount: number;
+        leverage: number;
+    }) => {
+        const symbol = "ETHUSDT";
+
+        // Set leverage
+        const levQuery = `symbol=${symbol}&leverage=${leverage}&timestamp=${Date.now()}`;
+        await axios.post(
+            `${BASE_URL}/fapi/v1/leverage?${levQuery}&signature=${this.sign(levQuery)}`,
+            {},
+            { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
+        );
+
+        // Place MARKET order using USDT amount
+        const entryQuery = `symbol=${symbol}&side=${side}&type=MARKET&quoteOrderQty=${usdtAmount}&timestamp=${Date.now()}`;
+        const entryResp = await axios.post(
+            `${BASE_URL}/fapi/v1/order?${entryQuery}&signature=${this.sign(entryQuery)}`,
+            {},
+            { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
+        );
+
+        // Binance returns filled quantity
+        const filledQty = entryResp.data?.origQty || entryResp.data?.executedQty;
+        if (!filledQty) throw new Error("Failed to get filled quantity");
+
+        return { filledQty, side };
+    };
+
+    placeTakeProfit = async ({
+        filledQty,
+        side,
+        takeProfit,
+    }: {
+        filledQty: number;
+        side: "BUY" | "SELL";
+        takeProfit: number;
+    }) => {
+        const exitSide = side === "BUY" ? "SELL" : "BUY";
+        const query = `symbol=ETHUSDT&side=${exitSide}&type=TAKE_PROFIT_MARKET&stopPrice=${takeProfit}&reduceOnly=true&quantity=${filledQty}&timestamp=${Date.now()}`;
+
+        await axios.post(
+            `${BASE_URL}/fapi/v1/order?${query}&signature=${this.sign(query)}`,
+            {},
+            { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
+        );
+
+        return "Take Profit set";
+    };
+
+    placeStopLoss = async ({
+        filledQty,
+        side,
+        stopLoss,
+    }: {
+        filledQty: number;
+        side: "BUY" | "SELL";
+        stopLoss: number;
+    }) => {
+        const exitSide = side === "BUY" ? "SELL" : "BUY";
+        const query = `symbol=ETHUSDT&side=${exitSide}&type=STOP_MARKET&stopPrice=${stopLoss}&reduceOnly=true&quantity=${filledQty}&timestamp=${Date.now()}`;
+
+        await axios.post(
+            `${BASE_URL}/fapi/v1/order?${query}&signature=${this.sign(query)}`,
+            {},
+            { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
+        );
+
+        return "Stop Loss set";
+    };
+
+    getCurrentlyOpenedPosition = async () => {
+        const symbol = "ETHUSDT";
+
+        // 1️⃣ Get current position
+        const posResp = await axios.get(
+            `https://fapi.binance.com/fapi/v2/positionRisk?symbol=${symbol}`,
+            { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
+        );
+
+        return Number(posResp.data[0].positionAmt);
+    }
+
+    closePositionFully = async () => {
+        const symbol = "ETHUSDT";
+
+        // 1️⃣ Get current position
+        const positionAmt = await this.getCurrentlyOpenedPosition();
+
+        if (positionAmt === 0) return { message: "No open position" };
+
+        const side = positionAmt > 0 ? "BUY" : "SELL"; // original side
+        const exitSide = positionAmt > 0 ? "SELL" : "BUY";
+
+        // 2️⃣ Close using MARKET order
+        const query = `symbol=${symbol}&side=${exitSide}&type=MARKET&quantity=${Math.abs(
+            positionAmt
+        )}&reduceOnly=true&timestamp=${Date.now()}`;
+
+        const resp = await axios.post(
+            `${BASE_URL}/fapi/v1/order?${query}&signature=${this.sign(query)}`,
+            {},
+            { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
+        );
+
+        return {
+            message: "Position fully closed",
+            orderId: resp.data.orderId,
+            filledQty: resp.data.executedQty,
+        };
+    };
+
+
 }
 
 

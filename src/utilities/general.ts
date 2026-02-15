@@ -21,3 +21,15 @@ export const getPostionType = (trend?: 'up' | 'down') => {
 
     return `UNDEFINED`; 
 };
+
+export const getPostionSide = (trend?: 'up' | 'down'): 'BUY' | 'SELL' | undefined => {
+    if (trend === 'up') {
+        return `BUY`;    
+    }
+
+    if (trend === 'down') {
+        return `SELL`;   
+    }
+
+    return undefined; 
+};

@@ -3,12 +3,11 @@
 // @ts-ignore
 import 'dotenv/config';
 import { BinanceConfig } from "./classes/binance-config";
-import { colorTrend, getPostionSide, getPostionType } from './utilities/general';
+import { colorTrend, getPostionType } from './utilities/general';
 // @ts-ignore
 import express from "express";
 // @ts-ignore
 import { Request, Response } from "express";
-
 const cron = require("node-cron");
 
 /* =========================
@@ -64,14 +63,51 @@ function startBot() {
         const binance = new BinanceConfig()
         binance.startFuturesPriceStream("ETHUSDT");
 
-        const leverage = 2;
+        const capital = 100
+        const leverage = 10;
+        const position = capital * leverage;
+        const orderFee = position * (0.04 / 100);
         const takeProfitPerc = 30 / 100;
+
 
         let lastTrend: 'up' | 'down' | undefined = undefined;
         let hasOpenedPosition = false;
         let hasTradedInCurrentTrend = false;
 
-        const getTakeProfit = async (orderTrendDir: 'up' | 'down') => {
+        // logging
+        let orderQty: number;
+        let orderTrendDir: 'up' | 'down' | undefined | null;
+        let takeProfit: number = 0;
+
+        const logOrderResult = async (openOrClose: PositionType, orderTrendDirection: 'up' | 'down' | undefined, assetPrice: number) => {
+            if (orderTrendDirection == undefined) return;
+
+            console.log(new Date().toLocaleTimeString())
+
+            if (openOrClose == PositionType.Open) {
+                orderQty = position / assetPrice;
+
+                orderTrendDir = orderTrendDirection;
+                console.log('Opening position', getPostionType(orderTrendDirection), '. Current Price', assetPrice);
+                hasOpenedPosition = true;
+                await setTakeProfit();
+            } else {
+                const closingOrderValue = orderQty * assetPrice;
+                if (orderTrendDir == 'up') {
+                    console.log('Closing position. Current Price', assetPrice, 'Profit', closingOrderValue - position - (orderFee * 2));
+                } else if (orderTrendDir == 'down') {
+                    console.log('Closing position. Current Price', assetPrice, 'Profit', position - closingOrderValue - (orderFee * 2));
+                }
+
+                hasOpenedPosition = false;
+                orderQty = 0;
+                orderTrendDir = undefined;
+                takeProfit = 0;
+                hasTradedInCurrentTrend = true;
+            }
+        }
+
+        const setTakeProfit = async () => {
             try {
                 // ⏱ wait 5 seconds to avoid update latencies
                 await sleep(5000);
@@ -85,63 +121,36 @@ function startBot() {
                 const takeProfitLength = previousBodyLength * takeProfitPerc;
 
                 if (orderTrendDir == 'up') {
-                    return previousCandleClose + takeProfitLength;
+                    takeProfit = previousCandleClose + takeProfitLength;
                 }
                 else {
-                    return previousCandleClose - takeProfitLength;
+                    takeProfit = previousCandleClose - takeProfitLength;
                 }
+
+                console.log('Take profit set to:', takeProfit);
             } catch (ex) {
                 console.log('Take profit calculation error:', ex);
             }
         }
 
-        const startOrder = async (orderTrend: 'up' | 'down') => {
-            try {
-                const tradableBalance = await binance.getFuturesUSDTBalance();
+        const closeIfTakeProfitHit = async () => {
+            if (!hasOpenedPosition || takeProfit === 0) return;
 
-                if (tradableBalance?.availableBalance) {
-                    const orderSide = getPostionSide(orderTrend);
-                    const orderCapital = Math.floor(Number(tradableBalance?.availableBalance));
+            const currentPrice = binance.getLivePrice();
 
-                    if (orderSide) {
-                        const payload = { side: orderSide, usdtAmount: orderCapital, leverage }
-                        const { filledQty, side } = await binance.openPosition(payload);
-
-                        if (filledQty) {
-                            console.log("Opened a", side, "position at", binance.getLivePrice(), "USDT. Position size:", orderCapital * leverage, "USDT");
-                            hasOpenedPosition = true;
-
-                            const filledQuantity = Number(filledQty.toString());
-                            const tp = await getTakeProfit(orderTrend)
-                            const payload = { filledQty: filledQuantity, side: orderSide, takeProfit: tp }
-                            const res = await binance.placeTakeProfit(payload);
-
-                            if (res) {
-                                console.log("Take profit set:", tp, "USDT");
-                            } else {
-                                console.log("Take profit setting failed");
-                            }
-                        }
-                    }
+            if (orderTrendDir == 'up') {
+                if (currentPrice >= takeProfit) {
+                    console.log('Take profit hit.');
+                    await logOrderResult(PositionType.Close, 'up', currentPrice)
                 }
-            } catch (ex) {
-                console.log('Order open error', ex)
             }
-        }
-
-        const closeOrder = async () => {
-            try {
-                const res = await binance.closePositionFully();
-
-                if (res.filledQty) {
-                    console.log("Position closed after expiration at", binance.getLivePrice())
-
-                    hasOpenedPosition = false;
-                    hasTradedInCurrentTrend = true;
+            else {
+                if (currentPrice <= takeProfit) {
+                    console.log('Take profit hit.');
+                    await logOrderResult(PositionType.Close, 'up', currentPrice)
                 }
-            } catch (ex) {
-                console.log('Order close error', ex)
             }
+
         }
 
         while (true) {
@@ -173,28 +182,27 @@ function startBot() {
                         if (hasTradedInCurrentTrend) hasTradedInCurrentTrend = false;
                     }
 
+
                     if (previousCandleTrend != secondPreviousCandleTrend && !hasOpenedPosition && !hasTradedInCurrentTrend) {
                         // confirm trend change
                         console.log("Trend reveresed to", colorTrend(previousCandleTrend));
                         lastTrend = previousCandleTrend;
 
                         // Open a position here
-                        if (secondPreviousCandleTrend) startOrder(secondPreviousCandleTrend);
+                        console.log("opening a position in the direction", colorTrend(secondPreviousCandleTrend))
+
+                        await logOrderResult(PositionType.Open, secondPreviousCandleTrend, binance.getLivePrice());
+
                     }
+
+                    await closeIfTakeProfitHit(); // close if take profit hit
 
                     if (hasOpenedPosition && secondPreviousCandleTrend == lastTrend) {
-                        // close the position normally (after 15 min candle close)
-                        await closeOrder();
-                    }
+                        // close the position normally (after 5 min candle close)
+                        console.log("Closing position.")
 
-                    if (hasOpenedPosition) {
-                        // identify auto closed position then reset values
-                        const positionAmt = await binance.getCurrentlyOpenedPosition();
+                        await logOrderResult(PositionType.Close, 'up', binance.getLivePrice())
 
-                        if (positionAmt === 0) {
-                            hasOpenedPosition = false;
-                            hasTradedInCurrentTrend = true;
-                        }
                     }
                 }
 

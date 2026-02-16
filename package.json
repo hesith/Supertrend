@@ -12,18 +12,18 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "typescript": "^5.9.3",
-    "@types/node": "^25.1.0",
     "axios": "^1.13.5",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "https-proxy-agent": "^7.0.6",
     "node-binance-api": "^1.0.20",
     "node-cron": "^4.2.1",
     "technicalindicators": "^3.1.0",
-    "ws": "^8.19.0",
-    "https-proxy-agent": "^7.0.2"
+    "typescript": "^5.9.3",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
+    "@types/node": "^25.2.3",
     "ts-node": "^10.9.2"
   }
 }

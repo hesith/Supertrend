@@ -43,7 +43,7 @@ export class BinanceConfig {
 
             this.priceSocket = new WebSocket(wsUrl);
 
-            this.priceSocket.on("message", (data) => {
+            this.priceSocket.on("message", (data:any) => {
                 const payload = JSON.parse(data.toString());
 
                 // mark price

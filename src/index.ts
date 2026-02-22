@@ -104,7 +104,8 @@ function startBot() {
                 if (tradableBalance?.availableBalance) {
                     const orderSide = getPostionSide(orderTrend);
                     const orderCapital = Math.floor(Number(tradableBalance?.availableBalance));
-
+                    console.log('Tradable balace:', orderCapital);
+                    
                     if (orderSide) {
                         const payload = { side: orderSide, usdtAmount: orderCapital, leverage }
                         const { filledQty, side } = await binance.openPosition(payload);

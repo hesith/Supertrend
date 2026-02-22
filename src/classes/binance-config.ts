@@ -1,11 +1,11 @@
 import axios from 'axios';
+import crypto from "crypto";
 import 'dotenv/config';
+import { HttpsProxyAgent } from "https-proxy-agent";
 import Binance from 'node-binance-api';
 import { ATR } from 'technicalindicators';
-import { SupertrendPoint } from '../interfaces/binance/indicators/supertrend';
-import { HttpsProxyAgent } from "https-proxy-agent";
 import WebSocket from "ws";
-import crypto from "crypto";
+import { SupertrendPoint } from '../interfaces/binance/indicators/supertrend';
 
 // Proxy string
 const proxyString = process.env.PROXY_STRING || '';
@@ -43,7 +43,7 @@ export class BinanceConfig {
 
             this.priceSocket = new WebSocket(wsUrl);
 
-            this.priceSocket.on("message", (data:any) => {
+            this.priceSocket.on("message", (data: any) => {
                 const payload = JSON.parse(data.toString());
 
                 // mark price
@@ -219,20 +219,29 @@ export class BinanceConfig {
         leverage: number;
     }) => {
         const symbol = "ETHUSDT";
+        const serverTime = await this.getServerTime();
 
         // Set leverage
-        const levQuery = `symbol=${symbol}&leverage=${leverage}&timestamp=${Date.now()}`;
+        const levQuery = `symbol=${symbol}&leverage=${leverage}&timestamp=${serverTime}`;
+
+        console.log('Sending leverage request.. Leverage:', leverage);
         await axios.post(
             `${BASE_URL}/fapi/v1/leverage?${levQuery}&signature=${this.sign(levQuery)}`,
-            {},
+            null,
             { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
         );
 
-        // Place MARKET order using USDT amount
-        const entryQuery = `symbol=${symbol}&side=${side}&type=MARKET&quoteOrderQty=${usdtAmount}&timestamp=${Date.now()}`;
+
+        // Calculate quantity
+        const price = this.getLivePrice();
+        let quantity = usdtAmount / price;
+        quantity = Math.floor(quantity * 1000) / 1000; // ETH precision
+
+        // Place MARKET order
+        const entryQuery = `symbol=${symbol}&side=${side}&type=MARKET&quantity=${quantity}&timestamp=${serverTime}`;
         const entryResp = await axios.post(
             `${BASE_URL}/fapi/v1/order?${entryQuery}&signature=${this.sign(entryQuery)}`,
-            {},
+            null,
             { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
         );
 
@@ -253,11 +262,20 @@ export class BinanceConfig {
         takeProfit: number;
     }) => {
         const exitSide = side === "BUY" ? "SELL" : "BUY";
-        const query = `symbol=ETHUSDT&side=${exitSide}&type=TAKE_PROFIT_MARKET&stopPrice=${takeProfit}&reduceOnly=true&quantity=${filledQty}&timestamp=${Date.now()}`;
+        const serverTime = await this.getServerTime();
+
+        // Round to 2 decimal places because step size is 0.01
+        const roundedPrice = Number(takeProfit.toFixed(2));
+        const roundedQty = Number(filledQty.toFixed(2));
+
+        const query = `symbol=ETHUSDT&side=${exitSide}&type=LIMIT&timeinforce=GTC&price=${roundedPrice}&reduceOnly=true&quantity=${roundedQty}&timestamp=${serverTime}`;
+
+        console.log('Getting currently openened position...', await this.getCurrentlyOpenedPosition())
+        console.log('Placing Take Profit at..', takeProfit);
 
         await axios.post(
             `${BASE_URL}/fapi/v1/order?${query}&signature=${this.sign(query)}`,
-            {},
+            null,
             { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
         );
 
@@ -274,11 +292,15 @@ export class BinanceConfig {
         stopLoss: number;
     }) => {
         const exitSide = side === "BUY" ? "SELL" : "BUY";
-        const query = `symbol=ETHUSDT&side=${exitSide}&type=STOP_MARKET&stopPrice=${stopLoss}&reduceOnly=true&quantity=${filledQty}&timestamp=${Date.now()}`;
+        const serverTime = await this.getServerTime();
+
+        const query = `symbol=ETHUSDT&side=${exitSide}&type=STOP_MARKET&stopPrice=${stopLoss}&reduceOnly=true&quantity=${filledQty}&timestamp=${serverTime}`;
+
+        console.log('Placing Stop Loss at..', stopLoss);
 
         await axios.post(
             `${BASE_URL}/fapi/v1/order?${query}&signature=${this.sign(query)}`,
-            {},
+            null,
             { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
         );
 
@@ -287,12 +309,17 @@ export class BinanceConfig {
 
     getCurrentlyOpenedPosition = async () => {
         const symbol = "ETHUSDT";
+        const timestamp = Date.now();
+
+        const query = `symbol=${symbol}&timestamp=${timestamp}`;
+        const signature = this.sign(query);
 
         // 1️⃣ Get current position
         const posResp = await axios.get(
-            `https://fapi.binance.com/fapi/v2/positionRisk?symbol=${symbol}`,
+            `${BASE_URL}/fapi/v2/positionRisk?${query}&signature=${signature}`,
             { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
         );
+
 
         return Number(posResp.data[0].positionAmt);
     }
@@ -301,21 +328,25 @@ export class BinanceConfig {
         const symbol = "ETHUSDT";
 
         // 1️⃣ Get current position
+        console.log('Getting currently openened position...')
         const positionAmt = await this.getCurrentlyOpenedPosition();
 
         if (positionAmt === 0) return { message: "No open position" };
+        console.log('Position:', positionAmt);
 
         const side = positionAmt > 0 ? "BUY" : "SELL"; // original side
         const exitSide = positionAmt > 0 ? "SELL" : "BUY";
 
         // 2️⃣ Close using MARKET order
+        const serverTime = await this.getServerTime();
+
         const query = `symbol=${symbol}&side=${exitSide}&type=MARKET&quantity=${Math.abs(
             positionAmt
-        )}&reduceOnly=true&timestamp=${Date.now()}`;
+        )}&reduceOnly=true&timestamp=${serverTime}`;
 
         const resp = await axios.post(
             `${BASE_URL}/fapi/v1/order?${query}&signature=${this.sign(query)}`,
-            {},
+            null,
             { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
         );
 

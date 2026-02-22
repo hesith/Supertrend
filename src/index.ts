@@ -151,7 +151,6 @@ function startBot() {
             try {
                 const candles = await binance.getFuturesCandlesByPublicEndpoint('ETHUSDT', '15m', 150);
                 const st = binance.calculateSupertrend(candles);
-                if(!hasOpenedPosition) startOrder('up')
 
                 // st.forEach((point, idx) => {
                 //     console.log(
@@ -188,7 +187,7 @@ function startBot() {
 
                     if (hasOpenedPosition && secondPreviousCandleTrend == lastTrend) {
                         // close the position normally (after 15 min candle close)
-                        //await closeOrder();
+                        await closeOrder();
                     }
 
                     if (hasOpenedPosition) {

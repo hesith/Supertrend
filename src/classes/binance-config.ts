@@ -193,7 +193,7 @@ export class BinanceConfig {
             .digest("hex");
 
     getServerTime = async () =>
-        (await axios.get(`${BASE_URL}/fapi/v1/time`)).data.serverTime;
+        (await axios.get(`${BASE_URL}/fapi/v1/time`, { httpsAgent: this.proxyAgent, })).data.serverTime;
 
     getFuturesUSDTBalance = async () => {
         const serverTime = await this.getServerTime();
@@ -203,7 +203,7 @@ export class BinanceConfig {
 
         const { data } = await axios.get(
             `${BASE_URL}/fapi/v2/balance?${queryString}&signature=${signature}`,
-            { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
+            { httpsAgent: this.proxyAgent, headers: { "X-MBX-APIKEY": process.env.API_KEY } }
         );
 
         return data.find((a: any) => a.asset === "USDT");
@@ -228,7 +228,7 @@ export class BinanceConfig {
         await axios.post(
             `${BASE_URL}/fapi/v1/leverage?${levQuery}&signature=${this.sign(levQuery)}`,
             null,
-            { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
+            { httpsAgent: this.proxyAgent, headers: { "X-MBX-APIKEY": process.env.API_KEY } }
         );
 
 
@@ -242,7 +242,7 @@ export class BinanceConfig {
         const entryResp = await axios.post(
             `${BASE_URL}/fapi/v1/order?${entryQuery}&signature=${this.sign(entryQuery)}`,
             null,
-            { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
+            { httpsAgent: this.proxyAgent, headers: { "X-MBX-APIKEY": process.env.API_KEY } }
         );
 
         // Binance returns filled quantity
@@ -276,7 +276,7 @@ export class BinanceConfig {
         await axios.post(
             `${BASE_URL}/fapi/v1/order?${query}&signature=${this.sign(query)}`,
             null,
-            { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
+            { httpsAgent: this.proxyAgent, headers: { "X-MBX-APIKEY": process.env.API_KEY } }
         );
 
         return "Take Profit set";
@@ -301,7 +301,7 @@ export class BinanceConfig {
         await axios.post(
             `${BASE_URL}/fapi/v1/order?${query}&signature=${this.sign(query)}`,
             null,
-            { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
+            { httpsAgent: this.proxyAgent, headers: { "X-MBX-APIKEY": process.env.API_KEY } }
         );
 
         return "Stop Loss set";
@@ -317,7 +317,7 @@ export class BinanceConfig {
         // 1️⃣ Get current position
         const posResp = await axios.get(
             `${BASE_URL}/fapi/v2/positionRisk?${query}&signature=${signature}`,
-            { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
+            { httpsAgent: this.proxyAgent, headers: { "X-MBX-APIKEY": process.env.API_KEY } }
         );
 
 
@@ -347,7 +347,7 @@ export class BinanceConfig {
         const resp = await axios.post(
             `${BASE_URL}/fapi/v1/order?${query}&signature=${this.sign(query)}`,
             null,
-            { headers: { "X-MBX-APIKEY": process.env.API_KEY } }
+            { httpsAgent: this.proxyAgent, headers: { "X-MBX-APIKEY": process.env.API_KEY } }
         );
 
         return {

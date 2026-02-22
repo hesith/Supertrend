@@ -272,7 +272,7 @@ export class BinanceConfig {
         const query = `symbol=ETHUSDT&side=${exitSide}&type=LIMIT&timeinforce=GTC&price=${roundedPrice}&reduceOnly=true&quantity=${roundedQty}&timestamp=${serverTime}`;
 
         console.log('Getting currently openened position...', await this.getCurrentlyOpenedPosition())
-        console.log('Placing Take Profit at..', takeProfit);
+        console.log('Placing Take Profit at..', takeProfit, 'on', filledQty, 'ETH');
 
         await axios.post(
             `${BASE_URL}/fapi/v1/order?${query}&signature=${this.sign(query)}`,

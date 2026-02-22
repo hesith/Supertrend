@@ -234,7 +234,8 @@ export class BinanceConfig {
 
         // Calculate quantity
         const price = this.getLivePrice();
-        let quantity = usdtAmount / price;
+        const positionNotional = usdtAmount * leverage;
+        let quantity = positionNotional / price;
         quantity = Math.floor(quantity * 1000) / 1000; // ETH precision
 
         // Place MARKET order

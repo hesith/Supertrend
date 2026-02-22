@@ -267,7 +267,7 @@ export class BinanceConfig {
 
         // Round to 2 decimal places because step size is 0.01
         const roundedPrice = Number(takeProfit.toFixed(2));
-        const roundedQty = Number(filledQty.toFixed(2));
+        const roundedQty = Number(filledQty.toFixed(3));
 
         const query = `symbol=ETHUSDT&side=${exitSide}&type=LIMIT&timeinforce=GTC&price=${roundedPrice}&reduceOnly=true&quantity=${roundedQty}&timestamp=${serverTime}`;
 

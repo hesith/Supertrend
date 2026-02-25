@@ -76,7 +76,7 @@ function startBot() {
                 // ⏱ wait 5 seconds to avoid update latencies
                 await sleep(5000);
 
-                const candles = await binance.getFuturesCandlesByPublicEndpoint('ETHUSDT', '15m', 2);
+                const candles = await binance.getFuturesCandlesByPublicEndpoint('ETHUSDT', '4h', 2);
                 const previousCandle = candles?.[0];
 
                 const previousCandleOpen = previousCandle?.open;
@@ -149,7 +149,7 @@ function startBot() {
 
         while (true) {
             try {
-                const candles = await binance.getFuturesCandlesByPublicEndpoint('ETHUSDT', '15m', 150);
+                const candles = await binance.getFuturesCandlesByPublicEndpoint('ETHUSDT', '4h', 150);
                 const st = binance.calculateSupertrend(candles);
 
                 // st.forEach((point, idx) => {
@@ -186,7 +186,7 @@ function startBot() {
                     }
 
                     if (hasOpenedPosition && secondPreviousCandleTrend == lastTrend) {
-                        // close the position normally (after 15 min candle close)
+                        // close the position normally (after 4h candle close)
                         await closeOrder();
                     }
 

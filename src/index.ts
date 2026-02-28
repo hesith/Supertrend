@@ -98,6 +98,7 @@ function startBot() {
 
         const startOrder = async (orderTrend: 'up' | 'down') => {
             if (await binance.getCurrentlyOpenedPosition() != 0) return;
+            if (!await binance.validateRules()) return;
 
             try {
                 const tradableBalance = await binance.getFuturesUSDTBalance();

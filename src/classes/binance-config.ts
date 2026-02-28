@@ -344,7 +344,65 @@ export class BinanceConfig {
         };
     };
 
+    //#region Rules
 
+    validateRules = async (): Promise<boolean> => {
+        const candles: { open: number; high: number; low: number; close: number }[] = await this.getFuturesCandlesByPublicEndpoint('ETHUSDT', '4h', 9);
+
+        //#region Rule 1 : Ignore if last 6 out of 7 candles are Red
+        let redCount = 0;
+
+        candles?.slice(1, 8).forEach(c => {
+            const isRed = (c.close - c.open) < 0;
+            if (isRed) redCount += 1;
+        })
+
+        if (redCount >= 6) {
+            console.log("Ignoring due to Rule 1 :", redCount, "out of 7 candles are Red");
+            return false;
+        }
+        //#endregion
+
+        //#region Rule 2 : Ignore if previous Red candle is down more than 5% of price
+        //#region Rule 3 : Ignore if previous Green candle is up more than 4% of price
+        const prevCandleBody = candles[7].close - candles[7].open;
+        const isPrevRed = prevCandleBody < 0;
+        const livePrice = this.getLivePrice();
+
+        const consideredDeviation = isPrevRed ? livePrice * 5 / 100 : livePrice * 4 / 100;
+
+        if (Math.abs(prevCandleBody) >= consideredDeviation) {
+            console.log(`Ignoring due to Rule ${isPrevRed ? "2" : "3"} : Previous ${isPrevRed ? 'Red' : 'Green'} candle exceeds risky deviation`);
+            return false;
+        }
+        //#endregion
+        //#endregion
+
+        //#region Rule 4 : Ignore if last 6 out of 8 candles are Green AND previous Green candle is up more than 2% of price
+        if (!isPrevRed) {
+            let greenCount = 0;
+
+            candles?.slice(0, 8).forEach(c => {
+                const isGreen = (c.close - c.open) > 0;
+                if (isGreen) greenCount += 1;
+            })
+
+            if (greenCount >= 6) {
+                const consideredDeviationR4 = livePrice * 2 / 100;
+
+                if (Math.abs(prevCandleBody) >= consideredDeviationR4) {
+                    console.log("Ignoring due to Rule 4 :", greenCount, "out of 8 candles are Green AND Previous Green candle exceeds risky deviation");
+                    return false;
+                }
+            }
+        }
+
+        //#endregion
+
+        return true;
+    }
+
+    //#endregion
 }
 
 

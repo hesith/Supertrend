@@ -75,24 +75,6 @@ export class BinanceConfig {
     }
     //#endregion
 
-    getCandles = async (symbol: string, interval: string = '1h', limit: number = 100) => {
-        return new Promise<{ open: number; high: number; low: number; close: number }[]>((resolve, reject) => {
-            this.binance.candlesticks(symbol, interval, (error: any, ticks: any[]) => {
-                if (error) return reject(error);
-                if (!ticks || ticks.length === 0) return reject(new Error("No candle data"));
-
-                const candles = ticks.map(t => ({
-                    open: parseFloat(t[1]),
-                    high: parseFloat(t[2]),
-                    low: parseFloat(t[3]),
-                    close: parseFloat(t[4]),
-                }));
-
-                resolve(candles.slice(-limit));
-            }, { limit });
-        });
-    };
-
     getFuturesCandlesByPublicEndpoint = async (symbol: string, interval: string = '15m', limit: number = 100) => {
         try {
             const url = BASE_URL + `/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
@@ -295,7 +277,11 @@ export class BinanceConfig {
         const exitSide = side === "BUY" ? "SELL" : "BUY";
         const serverTime = await this.getServerTime();
 
-        const query = `symbol=ETHUSDT&side=${exitSide}&type=STOP_MARKET&stopPrice=${stopLoss}&reduceOnly=true&quantity=${filledQty}&timestamp=${serverTime}`;
+        // Round to 2 decimal places because step size is 0.01
+        const roundedPrice = Number(stopLoss.toFixed(2));
+        const roundedQty = Number(filledQty.toFixed(3));
+
+        const query = `symbol=ETHUSDT&side=${exitSide}&type=STOP_MARKET&stopPrice=${roundedPrice}&reduceOnly=true&quantity=${roundedQty}&timestamp=${serverTime}`;
 
         console.log('Placing Stop Loss at..', stopLoss);
 

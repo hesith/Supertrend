@@ -65,6 +65,7 @@ function startBot() {
         binance.startFuturesPriceStream("ETHUSDT");
 
         const leverage = 2;
+        const stopLossPips = 80;
         const takeProfitPerc = 30 / 100;
 
         let lastTrend: 'up' | 'down' | undefined = undefined;
@@ -97,7 +98,7 @@ function startBot() {
 
         const startOrder = async (orderTrend: 'up' | 'down') => {
             if (await binance.getCurrentlyOpenedPosition() != 0) return;
-            
+
             try {
                 const tradableBalance = await binance.getFuturesUSDTBalance();
 
@@ -115,15 +116,31 @@ function startBot() {
                             hasOpenedPosition = true;
 
                             const filledQuantity = Number(filledQty.toString());
+
+                            // Place take profit
                             const tp = await getTakeProfit(orderTrend)
                             const payload = { filledQty: filledQuantity, side: orderSide, takeProfit: tp }
-                            const res = await binance.placeTakeProfit(payload);
+                            const tpRes = await binance.placeTakeProfit(payload);
 
-                            if (res) {
+                            if (tpRes) {
                                 console.log("Take profit set:", tp, "USDT");
                             } else {
                                 console.log("Take profit setting failed");
                             }
+
+                            // Place stop loss
+                            try {
+                                const stopLoss = binance.getLivePrice() + stopLossPips;
+                                const slPayload = { filledQty: filledQty, side: orderSide, stopLoss: stopLoss }
+                                const slRes = await binance.placeStopLoss(slPayload);
+
+                                if (slRes) {
+                                    console.log("Stop loss set:", stopLoss, "USDT");
+                                } else {
+                                    console.log("Stop loss setting failed");
+                                }
+                            } catch (e) { console.log("Stop loss error") }
+
                         }
                     }
                 }

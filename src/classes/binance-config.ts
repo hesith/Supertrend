@@ -281,17 +281,35 @@ export class BinanceConfig {
         const roundedPrice = Number(stopLoss.toFixed(2));
         const roundedQty = Number(filledQty.toFixed(3));
 
-        const query = `symbol=ETHUSDT&side=${exitSide}&type=STOP_MARKET&stopPrice=${roundedPrice}&reduceOnly=true&quantity=${roundedQty}&timestamp=${serverTime}`;
+        const query = `algoType=CONDITIONAL&symbol=ETHUSDT&side=${exitSide}&type=STOP_MARKET&timeinforce=GTC&triggerPrice=${roundedPrice}&reduceOnly=true&quantity=${roundedQty}&timestamp=${serverTime}`;
 
         console.log('Placing Stop Loss at..', stopLoss);
 
         await axios.post(
-            `${BASE_URL}/fapi/v1/order?${query}&signature=${this.sign(query)}`,
+            `${BASE_URL}/fapi/v1/algoOrder?${query}&signature=${this.sign(query)}`,
             null,
             { httpsAgent: this.proxyAgent, headers: { "X-MBX-APIKEY": process.env.API_KEY } }
         );
 
         return "Stop Loss set";
+    };
+
+    cancelAllAlgoOrdersBySymbol = async (symbol: string) => {
+        const serverTime = await this.getServerTime();
+
+        const query = `symbol=${symbol}&timestamp=${serverTime}`;
+
+        await axios.delete(
+            `${BASE_URL}/fapi/v1/algoOpenOrders?${query}&signature=${this.sign(query)}`,
+            {
+                httpsAgent: this.proxyAgent,
+                headers: {
+                    "X-MBX-APIKEY": process.env.API_KEY,
+                },
+            }
+        );
+
+        console.log(`Cancel request sent for All conditional orders for ${symbol}`);
     };
 
     getCurrentlyOpenedPosition = async () => {

@@ -64,7 +64,7 @@ function startBot() {
         const binance = new BinanceConfig()
         binance.startFuturesPriceStream("ETHUSDT");
 
-        const leverage = 2;
+        const leverage = 4;
         const stopLossPips = 80;
         const takeProfitPerc = 30 / 100;
 
@@ -132,7 +132,7 @@ function startBot() {
                             // Place stop loss
                             try {
                                 const stopLoss = binance.getLivePrice() + stopLossPips;
-                                const slPayload = { filledQty: filledQty, side: orderSide, stopLoss: stopLoss }
+                                const slPayload = { filledQty: filledQuantity, side: orderSide, stopLoss: stopLoss }
                                 const slRes = await binance.placeStopLoss(slPayload);
 
                                 if (slRes) {
@@ -169,6 +169,11 @@ function startBot() {
             try {
                 const candles = await binance.getFuturesCandlesByPublicEndpoint('ETHUSDT', '4h', 150);
                 const st = binance.calculateSupertrend(candles);
+
+                if (!hasOpenedPosition) {
+                    // Cancel all conditional orders (to remove stop loss order when no open)
+                    await binance.cancelAllAlgoOrdersBySymbol('ETHUSDT');
+                }
 
                 // st.forEach((point, idx) => {
                 //     console.log(

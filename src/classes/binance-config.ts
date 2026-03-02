@@ -308,8 +308,6 @@ export class BinanceConfig {
                 },
             }
         );
-
-        console.log(`Cancel request sent for All conditional orders for ${symbol}`);
     };
 
     getCurrentlyOpenedPosition = async () => {

@@ -170,11 +170,6 @@ function startBot() {
                 const candles = await binance.getFuturesCandlesByPublicEndpoint('ETHUSDT', '4h', 150);
                 const st = binance.calculateSupertrend(candles);
 
-                if (!hasOpenedPosition) {
-                    // Cancel all conditional orders (to remove stop loss order when no open)
-                    await binance.cancelAllAlgoOrdersBySymbol('ETHUSDT');
-                }
-
                 // st.forEach((point, idx) => {
                 //     console.log(
                 //         `Candle ${idx + 1}: Supertrend=${point.supertrend.toFixed(2)}, Trend=${colorTrend(point.trend)}`
@@ -221,6 +216,11 @@ function startBot() {
                             hasOpenedPosition = false;
                             hasTradedInCurrentTrend = true;
                         }
+                    }
+
+                    if (!hasOpenedPosition && hasTradedInCurrentTrend) {
+                        // Cancel all conditional orders (to remove stop loss order when no open positions)
+                        await binance.cancelAllAlgoOrdersBySymbol('ETHUSDT');
                     }
                 }
 

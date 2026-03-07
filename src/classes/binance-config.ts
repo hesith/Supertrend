@@ -253,7 +253,6 @@ export class BinanceConfig {
 
         const query = `symbol=ETHUSDT&side=${exitSide}&type=LIMIT&timeinforce=GTC&price=${roundedPrice}&reduceOnly=true&quantity=${roundedQty}&timestamp=${serverTime}`;
 
-        console.log('Getting currently openened position...', await this.getCurrentlyOpenedPosition())
         console.log('Placing Take Profit at..', roundedPrice, 'on', roundedQty, 'ETH');
 
         await axios.post(
@@ -317,6 +316,8 @@ export class BinanceConfig {
         const query = `symbol=${symbol}&timestamp=${timestamp}`;
         const signature = this.sign(query);
 
+        console.log('Getting currently openened position...');
+
         // 1️⃣ Get current position
         const posResp = await axios.get(
             `${BASE_URL}/fapi/v2/positionRisk?${query}&signature=${signature}`,
@@ -331,7 +332,6 @@ export class BinanceConfig {
         const symbol = "ETHUSDT";
 
         // 1️⃣ Get current position
-        console.log('Getting currently openened position...')
         const positionAmt = await this.getCurrentlyOpenedPosition();
 
         if (positionAmt === 0) return { message: "No open position" };

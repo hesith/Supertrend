@@ -294,19 +294,23 @@ export class BinanceConfig {
     };
 
     cancelAllAlgoOrdersBySymbol = async (symbol: string) => {
-        const serverTime = await this.getServerTime();
+        try {
+            const serverTime = await this.getServerTime();
 
-        const query = `symbol=${symbol}&timestamp=${serverTime}`;
+            const query = `symbol=${symbol}&timestamp=${serverTime}`;
 
-        await axios.delete(
-            `${BASE_URL}/fapi/v1/algoOpenOrders?${query}&signature=${this.sign(query)}`,
-            {
-                httpsAgent: this.proxyAgent,
-                headers: {
-                    "X-MBX-APIKEY": process.env.API_KEY,
-                },
-            }
-        );
+            await axios.delete(
+                `${BASE_URL}/fapi/v1/algoOpenOrders?${query}&signature=${this.sign(query)}`,
+                {
+                    httpsAgent: this.proxyAgent,
+                    headers: {
+                        "X-MBX-APIKEY": process.env.API_KEY,
+                    },
+                }
+            );
+        } catch (e) {
+            console.log('Cancel All Algos Error', e);
+        }
     };
 
     getCurrentlyOpenedPosition = async () => {
